@@ -95,19 +95,22 @@ async function getOpenAITestContext(isCI: boolean): Promise<ProvidedContext['pro
 
 async function getAnthropicTestContext(isCI: boolean): Promise<ProvidedContext['provider-anthropic']> {
   const apiKey = process.env.ANTHROPIC_API_KEY
-  const shouldSkip = !apiKey
+  const authToken = process.env.ANTHROPIC_AUTH_TOKEN
+  const shouldSkip = !apiKey && !authToken
 
   if (shouldSkip) {
-    console.log('⏭️  Anthropic API key not available - integration tests will be skipped')
+    console.log('⏭️  Anthropic API key/auth token not available - integration tests will be skipped')
     if (isCI) {
       throw new Error('CI/CD should be running all tests')
     }
   } else {
-    console.log('⏭️  Anthropic API key available - integration tests will run')
+    const authMethod = apiKey ? 'API key' : 'auth token'
+    console.log(`⏭️  Anthropic ${authMethod} available - integration tests will run`)
   }
 
   return {
     apiKey: apiKey,
+    authToken: authToken,
     shouldSkip: shouldSkip,
   }
 }

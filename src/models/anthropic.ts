@@ -19,6 +19,12 @@ export interface AnthropicModelConfig extends BaseModelConfig {
 
 export interface AnthropicModelOptions extends AnthropicModelConfig {
   apiKey?: string
+  /**
+   * OAuth/bearer token for authentication (e.g., from `claude setup-token`).
+   * When provided, requests use `Authorization: Bearer <token>` instead of `x-api-key`.
+   * Can also be set via the `ANTHROPIC_AUTH_TOKEN` environment variable.
+   */
+  authToken?: string
   client?: Anthropic
   clientConfig?: ClientOptions
 }
@@ -29,7 +35,7 @@ export class AnthropicModel extends Model<AnthropicModelConfig> {
 
   constructor(options?: AnthropicModelOptions) {
     super()
-    const { apiKey, client, clientConfig, ...modelConfig } = options || {}
+    const { apiKey, authToken, client, clientConfig, ...modelConfig } = options || {}
 
     this._config = {
       modelId: DEFAULT_ANTHROPIC_MODEL_ID,
@@ -42,15 +48,21 @@ export class AnthropicModel extends Model<AnthropicModelConfig> {
     } else {
       const hasEnvKey =
         typeof process !== 'undefined' && typeof process.env !== 'undefined' && process.env.ANTHROPIC_API_KEY
+      const hasEnvAuthToken =
+        typeof process !== 'undefined' && typeof process.env !== 'undefined' && process.env.ANTHROPIC_AUTH_TOKEN
 
-      if (!apiKey && !hasEnvKey) {
+      if (!apiKey && !authToken && !hasEnvKey && !hasEnvAuthToken) {
         throw new Error(
-          "Anthropic API key is required. Provide it via the 'apiKey' option or set the ANTHROPIC_API_KEY environment variable."
+          "Anthropic authentication is required. Provide 'apiKey', 'authToken', or set the ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN environment variable."
         )
       }
 
       this._client = new Anthropic({
         ...(apiKey ? { apiKey } : {}),
+        ...(authToken ? { authToken } : {}),
+        // When using authToken without apiKey, set apiKey to null to avoid the SDK
+        // looking for ANTHROPIC_API_KEY env var and potentially using a stale value
+        ...(!apiKey && (authToken || hasEnvAuthToken) && !hasEnvKey ? { apiKey: null } : {}),
         ...clientConfig,
         defaultHeaders: {
           ...clientConfig?.defaultHeaders,

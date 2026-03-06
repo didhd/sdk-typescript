@@ -79,6 +79,16 @@ describe('AnthropicModel', () => {
       )
     })
 
+    it('uses authToken from constructor parameter', () => {
+      const authToken = 'sk-ant-oat01-test-token'
+      new AnthropicModel({ authToken })
+      expect(Anthropic).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authToken,
+        })
+      )
+    })
+
     if (isNode) {
       it('uses API key from environment variable', () => {
         vi.stubEnv('ANTHROPIC_API_KEY', 'sk-from-env')
@@ -86,9 +96,31 @@ describe('AnthropicModel', () => {
         expect(Anthropic).toHaveBeenCalled()
       })
 
-      it('throws error when no API key is available', () => {
+      it('uses auth token from ANTHROPIC_AUTH_TOKEN environment variable', () => {
         vi.stubEnv('ANTHROPIC_API_KEY', '')
-        expect(() => new AnthropicModel()).toThrow('Anthropic API key is required')
+        vi.stubEnv('ANTHROPIC_AUTH_TOKEN', 'sk-ant-oat01-env-token')
+        new AnthropicModel()
+        expect(Anthropic).toHaveBeenCalledWith(
+          expect.objectContaining({
+            apiKey: null,
+          })
+        )
+      })
+
+      it('throws error when no API key or auth token is available', () => {
+        vi.stubEnv('ANTHROPIC_API_KEY', '')
+        vi.stubEnv('ANTHROPIC_AUTH_TOKEN', '')
+        expect(() => new AnthropicModel()).toThrow('Anthropic authentication is required')
+      })
+
+      it('prefers explicit apiKey over authToken env var', () => {
+        vi.stubEnv('ANTHROPIC_AUTH_TOKEN', 'sk-ant-oat01-env-token')
+        new AnthropicModel({ apiKey: 'sk-explicit' })
+        expect(Anthropic).toHaveBeenCalledWith(
+          expect.objectContaining({
+            apiKey: 'sk-explicit',
+          })
+        )
       })
     }
 

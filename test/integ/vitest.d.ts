@@ -16,6 +16,7 @@ declare module 'vitest' {
     ['provider-anthropic']: {
       shouldSkip: boolean
       apiKey: string | undefined
+      authToken: string | undefined
     }
     ['provider-gemini']: {
       shouldSkip: boolean

@@ -117,14 +117,17 @@ export const anthropic = {
     return inject('provider-anthropic').shouldSkip
   },
   createModel: (config: AnthropicModelOptions = {}): AnthropicModel => {
-    const apiKey = inject('provider-anthropic')?.apiKey
-    if (!apiKey) {
-      throw new Error('No Anthropic apiKey provided')
+    const providerConfig = inject('provider-anthropic')
+    const apiKey = providerConfig?.apiKey
+    const authToken = providerConfig?.authToken
+    if (!apiKey && !authToken) {
+      throw new Error('No Anthropic apiKey or authToken provided')
     }
 
     return new AnthropicModel({
       ...config,
-      apiKey: apiKey,
+      ...(apiKey ? { apiKey } : {}),
+      ...(authToken && !apiKey ? { authToken } : {}),
       clientConfig: {
         ...(config.clientConfig ?? {}),
         dangerouslyAllowBrowser: true,
